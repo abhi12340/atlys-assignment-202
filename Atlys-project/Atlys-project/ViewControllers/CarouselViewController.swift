@@ -7,54 +7,42 @@
 
 import UIKit
 
-import UIKit
-
-class CarouselViewController: UIViewController, UIScrollViewDelegate {
+class CarouselViewController: UIViewController, UIScrollViewDelegate, CarouselDelegate {
     
-    let scrollView = UIScrollView()
-    let stackView = UIStackView()
-    
-    var images: [UIImage] = [] // Array to store images
-    
-    // Manager responsible for adding images and setting up the carousel
+    private let scrollView = UIScrollView()
+    private let stackView = UIStackView()
     private var carouselManager: CarouselManager?
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Using a guard to handle optional values
-        guard let images = loadImages() else {
-            print("Error: Failed to load images")
-            return
-        }
-        self.images = images
-        
         setupScrollView()
         setupStackView()
+        loadImages()
         
-        carouselManager = CarouselManager(scrollView: scrollView, stackView: stackView, images: images)
-        
-        scrollView.delegate = self // Assign the delegate to handle scroll events
+        scrollView.delegate = self
     }
-    
+
     func setupScrollView() {
         scrollView.translatesAutoresizingMaskIntoConstraints = false
-        scrollView.isPagingEnabled = true // Enable paging to snap to images
+        scrollView.isPagingEnabled = false // Disable default paging for custom behavior
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.decelerationRate = .fast
         view.addSubview(scrollView)
         
         NSLayoutConstraint.activate([
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
-            scrollView.heightAnchor.constraint(equalTo: scrollView.widthAnchor, multiplier: 1)
+            scrollView.heightAnchor.constraint(equalTo: scrollView.widthAnchor, multiplier: 1) // 1:1 aspect ratio
         ])
     }
-    
+
     func setupStackView() {
         stackView.axis = .horizontal
         stackView.alignment = .fill
-        stackView.distribution = .fillEqually
-        stackView.spacing = 0
+        stackView.distribution = .fill
+        stackView.spacing = 0 // Will be set dynamically in the manager
         stackView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(stackView)
         
@@ -66,31 +54,29 @@ class CarouselViewController: UIViewController, UIScrollViewDelegate {
             stackView.heightAnchor.constraint(equalTo: scrollView.heightAnchor)
         ])
     }
-    
-    // Use an image loader service to load the images
-    func loadImages() -> [UIImage]? {
+
+    func loadImages() {
         let imageLoader = DefaultImageLoader()
-        return imageLoader.loadImages()
+        // Initialize the carousel manager with dependency injection
+        carouselManager = CarouselManager(scrollView: scrollView, stackView: stackView, images: imageLoader)
+        carouselManager?.delegate = self
     }
-    
-    // Scroll View Delegate to handle zoom effect
+
+    // ScrollView Delegate
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        carouselManager?.applyZoomEffect()
+        carouselManager?.handleScroll()
     }
-    
-    // Ensure the center image is zoomed in when scrolling stops
-    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
-        scrollViewDidScroll(scrollView)
+
+    // CarouselDelegate method
+    func didScrollToPage(index: Int) {
+        print("Scrolled to page: \(index)")
     }
-    
+
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         
         // Set the initial offset to display the middle image
-        let initialOffset = CGPoint(x: scrollView.bounds.size.width, y: 0)
-        scrollView.setContentOffset(initialOffset, animated: false)
-        
-        scrollViewDidScroll(scrollView) // Trigger zoom effect for the initial state
+        carouselManager?.handleScroll()
     }
 }
 

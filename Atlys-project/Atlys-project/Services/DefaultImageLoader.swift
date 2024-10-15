@@ -12,7 +12,7 @@ import UIKit
 class DefaultImageLoader: ImageLoader {
     
     func loadImages() -> [UIImage]? {
-        let imageNames = ["1", "2", "3", "4", "5"]
+        let imageNames = ["2", "3", "4"]
         
         // Safely load images from the bundle
         let images: [UIImage] = imageNames.compactMap { imageName in
